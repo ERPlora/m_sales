@@ -1,0 +1,45 @@
+{
+  "id": "sales",
+  "name": "Sales & POS",
+  "version": "2.0.0",
+  "description": "Universal sales engine with multi-tax support, payment methods, and reporting",
+  "author": "ERPlora",
+  "category": "pos",
+  "icon": "cart-outline",
+  "order": 5,
+  "tags": ["pos", "sales", "point-of-sale", "retail", "transactions", "payments", "checkout"],
+
+  "dependencies": {
+    "python": [],
+    "modules": ["customers", "inventory"]
+  },
+
+  "menu": {
+    "label": "Sales",
+    "icon": "cart-outline",
+    "url": "/modules/sales/",
+    "order": 5
+  },
+
+  "navigation": [
+    {"label": "Dashboard", "icon": "speedometer-outline", "id": "dashboard"},
+    {"label": "POS", "icon": "storefront-outline", "id": "pos"},
+    {"label": "History", "icon": "time-outline", "id": "history"},
+    {"label": "Reports", "icon": "bar-chart-outline", "id": "reports"},
+    {"label": "Settings", "icon": "settings-outline", "id": "settings"}
+  ],
+
+  "permissions": [
+    "sales.view_sale",
+    "sales.add_sale",
+    "sales.change_sale",
+    "sales.delete_sale",
+    "sales.void_sale",
+    "sales.view_paymentmethod",
+    "sales.add_paymentmethod",
+    "sales.change_paymentmethod",
+    "sales.delete_paymentmethod",
+    "sales.view_reports",
+    "sales.manage_settings"
+  ]
+}

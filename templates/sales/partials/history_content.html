@@ -1,0 +1,65 @@
+<div class="p-4">
+    <div class="datatable datatable-bordered datatable-responsive">
+        <!-- Toolbar with filters -->
+        <div class="datatable-toolbar">
+            <div class="datatable-toolbar-start">
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search|default('') }}"
+                    placeholder="{{ _('Search by sale number or customer...') }}"
+                    class="input input-sm datatable-search"
+                    hx-get="/m/sales/history"
+                    hx-trigger="keyup changed delay:400ms"
+                    hx-target="#sales-table-container"
+                    hx-include="[name='order_by'],[name='per_page'],[name='date_from'],[name='date_to'],[name='status']"
+                    hx-push-url="true">
+                <input
+                    type="date"
+                    name="date_from"
+                    value="{{ date_from|default('') }}"
+                    placeholder="{{ _('From') }}"
+                    class="input input-sm"
+                    style="width: 150px"
+                    hx-get="/m/sales/history"
+                    hx-trigger="change"
+                    hx-target="#sales-table-container"
+                    hx-include="[name='search'],[name='order_by'],[name='per_page'],[name='date_to'],[name='status']"
+                    hx-push-url="true">
+                <input
+                    type="date"
+                    name="date_to"
+                    value="{{ date_to|default('') }}"
+                    placeholder="{{ _('To') }}"
+                    class="input input-sm"
+                    style="width: 150px"
+                    hx-get="/m/sales/history"
+                    hx-trigger="change"
+                    hx-target="#sales-table-container"
+                    hx-include="[name='search'],[name='order_by'],[name='per_page'],[name='date_from'],[name='status']"
+                    hx-push-url="true">
+            </div>
+            <div class="datatable-toolbar-end">
+                <select
+                    name="status"
+                    class="select select-sm"
+                    style="width: 160px"
+                    hx-get="/m/sales/history"
+                    hx-trigger="change"
+                    hx-target="#sales-table-container"
+                    hx-include="[name='search'],[name='order_by'],[name='per_page'],[name='date_from'],[name='date_to']"
+                    hx-push-url="true">
+                    <option value="">{{ _("All statuses") }}</option>
+                    <option value="completed" {{ 'selected' if status_filter == 'completed' else '' }}>{{ _("Completed") }}</option>
+                    <option value="pending" {{ 'selected' if status_filter == 'pending' else '' }}>{{ _("Pending") }}</option>
+                    <option value="voided" {{ 'selected' if status_filter == 'voided' else '' }}>{{ _("Voided") }}</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Table Container (HTMX updates this) -->
+        <div id="sales-table-container">
+            {% include "sales/partials/sales_table_body.html" %}
+        </div>
+    </div>
+</div>

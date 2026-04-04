@@ -1,0 +1,82 @@
+<div class="overflow-x-auto">
+    <table class="table w-full">
+        <caption class="sr-only">{{ _("Sales history") }}</caption>
+        <thead class="table__head">
+            <tr>
+                <th class="table__th">{{ _("Sale #") }}</th>
+                <th class="table__th">{{ _("Date") }}</th>
+                <th class="table__th">{{ _("Customer") }}</th>
+                <th class="table__th">{{ _("Payment") }}</th>
+                <th class="table__th text-center">{{ _("Status") }}</th>
+                <th class="table__th text-right">{{ _("Total") }}</th>
+            </tr>
+        </thead>
+        <tbody class="table__body">
+            {% for sale in sales %}
+            <tr class="table__row cursor-pointer"
+                hx-get="/m/sales/history/{{ sale.id }}"
+                hx-target="#main-content-area"
+                hx-push-url="true">
+                <td class="table__td font-medium">{{ sale.sale_number }}</td>
+                <td class="table__td text-sm text-muted">{{ sale.created_at|dateformat("d/m/Y H:i") }}</td>
+                <td class="table__td">{{ sale.customer_name|default("-") }}</td>
+                <td class="table__td text-sm">{{ sale.payment_method_name|default("-") }}</td>
+                <td class="table__td text-center">
+                    <span class="chip chip--sm {% if sale.status == 'completed' %}chip--success{% elif sale.status == 'pending' %}chip--warning{% elif sale.status == 'voided' %}chip--danger{% else %}chip--neutral{% endif %}">
+                        {{ sale.status_label }}
+                    </span>
+                </td>
+                <td class="table__td text-right font-semibold">{{ currency(sale.total) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="table__td text-center py-8 text-muted">
+                    {{ icon("receipt-outline", css_class="text-4xl block mx-auto mb-2") }}
+                    <p>{{ _("No sales found") }}</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if total > per_page %}
+<div class="datatable-footer">
+    <div class="datatable-per-page">
+        <span>{{ _("Show") }}:</span>
+        <select
+            name="per_page"
+            hx-get="/m/sales/history"
+            hx-target="#sales-table-container"
+            hx-include="[name='search'],[name='order_by'],[name='date_from'],[name='date_to'],[name='status']"
+            hx-push-url="true">
+            <option value="10" {{ 'selected' if per_page == 10 else '' }}>10</option>
+            <option value="25" {{ 'selected' if per_page == 25 else '' }}>25</option>
+            <option value="50" {{ 'selected' if per_page == 50 else '' }}>50</option>
+        </select>
+    </div>
+    <span class="datatable-info">
+        {{ _("Showing") }} {{ (page - 1) * per_page + 1 }}-{{ [page * per_page, total]|min }} {{ _("of") }} {{ total }}
+    </span>
+    <div class="datatable-pagination">
+        {% if has_prev %}
+        <button class="btn btn-ghost btn-sm"
+            hx-get="/m/sales/history?page={{ page - 1 }}"
+            hx-target="#sales-table-container"
+            hx-include="[name='search'],[name='per_page'],[name='order_by'],[name='date_from'],[name='date_to'],[name='status']">
+            {{ icon("chevron-back-outline") }}
+        </button>
+        {% endif %}
+        <span class="mx-2 text-sm">{{ page }}</span>
+        {% if has_next %}
+        <button class="btn btn-ghost btn-sm"
+            hx-get="/m/sales/history?page={{ page + 1 }}"
+            hx-target="#sales-table-container"
+            hx-include="[name='search'],[name='per_page'],[name='order_by'],[name='date_from'],[name='date_to'],[name='status']">
+            {{ icon("chevron-forward-outline") }}
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

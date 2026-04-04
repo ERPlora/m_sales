@@ -1,0 +1,224 @@
+<script nonce="{{ csp_nonce }}">
+function reportsApp() {
+    return {
+        selectedPeriod: 'week',
+        stats: {
+            total_sales: {{ sales_count_week }},
+            total_revenue: {{ sales_total_week }},
+            avg_sale: 0,
+            payment_methods: {},
+            chart_data: { labels: [], revenue: [], count: [] }
+        },
+        loading: false,
+
+        init() {
+            this.loadStats();
+        },
+
+        async loadStats() {
+            this.loading = true;
+            try {
+                const response = await fetch(`/m/sales/reports/api/stats?period=${this.selectedPeriod}`);
+                if (response.ok) {
+                    this.stats = await response.json();
+                }
+            } catch (error) {
+                console.error('[Sales Reports] Error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        getBarHeight(value) {
+            if (!this.stats.chart_data || !this.stats.chart_data.revenue) return 0;
+            const max = Math.max(...this.stats.chart_data.revenue);
+            if (max === 0) return 0;
+            return Math.max((value / max) * 100, 2);
+        },
+
+        formatCurrency(amount) {
+            return new Intl.NumberFormat('{{ LANGUAGE_CODE|default("es") }}', {
+                style: 'currency',
+                currency: '{{ HUB_CONFIG.currency|default("EUR") }}'
+            }).format(amount);
+        },
+
+        formatCurrencyShort(amount) {
+            if (amount >= 1000) {
+                return new Intl.NumberFormat('{{ LANGUAGE_CODE|default("es") }}', {
+                    style: 'currency',
+                    currency: '{{ HUB_CONFIG.currency|default("EUR") }}',
+                    maximumFractionDigits: 0,
+                    notation: 'compact'
+                }).format(amount);
+            }
+            return new Intl.NumberFormat('{{ LANGUAGE_CODE|default("es") }}', {
+                style: 'currency',
+                currency: '{{ HUB_CONFIG.currency|default("EUR") }}',
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+    }
+}
+</script>
+
+<div x-data="reportsApp()" x-init="init()" class="p-4 space-y-4">
+    <!-- Period Selector -->
+    <div class="tabs tabs-border">
+        <button class="tab" :class="selectedPeriod === 'day' ? 'tab-active' : ''" @click="selectedPeriod = 'day'; loadStats()">
+            {{ _("Today") }}
+        </button>
+        <button class="tab" :class="selectedPeriod === 'week' ? 'tab-active' : ''" @click="selectedPeriod = 'week'; loadStats()">
+            {{ _("Week") }}
+        </button>
+        <button class="tab" :class="selectedPeriod === 'month' ? 'tab-active' : ''" @click="selectedPeriod = 'month'; loadStats()">
+            {{ _("Month") }}
+        </button>
+        <button class="tab" :class="selectedPeriod === 'year' ? 'tab-active' : ''" @click="selectedPeriod = 'year'; loadStats()">
+            {{ _("Year") }}
+        </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card glass">
+            <div class="card-body">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                        {{ icon("receipt-outline", css_class="text-2xl", style="color:var(--color-primary)") }}
+                    </div>
+                    <div>
+                        <div class="text-sm opacity-60">{{ _("Total Sales") }}</div>
+                        <div class="text-2xl font-bold tabular-nums" x-text="stats.total_sales || 0"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card glass">
+            <div class="card-body">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
+                        {{ icon("cash-outline", css_class="text-2xl", style="color:var(--color-success)") }}
+                    </div>
+                    <div>
+                        <div class="text-sm opacity-60">{{ _("Total Revenue") }}</div>
+                        <div class="text-2xl font-bold tabular-nums" x-text="formatCurrency(stats.total_revenue || 0)"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card glass">
+            <div class="card-body">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
+                        {{ icon("trending-up-outline", css_class="text-2xl", style="color:var(--color-warning)") }}
+                    </div>
+                    <div>
+                        <div class="text-sm opacity-60">{{ _("Average Sale") }}</div>
+                        <div class="text-2xl font-bold tabular-nums" x-text="formatCurrency(stats.avg_sale || 0)"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Bar Chart -->
+    <div class="card glass">
+        <div class="card-header">
+            <h2 class="card-title">{{ _("Revenue") }}</h2>
+        </div>
+        <div class="card-body">
+            <template x-if="stats.chart_data && stats.chart_data.labels.length > 0">
+                <div>
+                    <div class="bar-chart bar-chart-grid" :class="stats.chart_data.labels.length > 15 ? '' : 'bar-chart-lg'">
+                        <template x-for="(label, i) in stats.chart_data.labels" :key="i">
+                            <div class="bar-chart-item">
+                                <div class="bar-chart-value">
+                                    <span class="bar-chart-value-main" x-text="formatCurrencyShort(stats.chart_data.revenue[i])"></span>
+                                </div>
+                                <div class="bar-chart-bar bar-chart-bar-no-dot"
+                                     :style="`height: ${getBarHeight(stats.chart_data.revenue[i])}%`"></div>
+                                <div class="bar-chart-label" x-text="label"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <template x-if="!stats.chart_data || stats.chart_data.labels.length === 0">
+                <div class="text-center py-12 opacity-40">
+                    {{ icon("bar-chart-outline", css_class="text-4xl block mx-auto mb-2") }}
+                    <p class="text-sm">{{ _("No data for this period") }}</p>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Payment Methods + Distribution -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Payment Methods List -->
+        <div class="card glass">
+            <div class="card-header">
+                <h2 class="card-title">{{ _("Payment Methods") }}</h2>
+            </div>
+            <div class="card-body">
+                <template x-if="Object.keys(stats.payment_methods || {}).length > 0">
+                    <div class="list">
+                        <template x-for="(data, method) in stats.payment_methods" :key="method">
+                            <div class="list-item">
+                                <div class="list-item-content">
+                                    <span class="list-item-label" x-text="data.label || method"></span>
+                                    <span class="list-item-note" x-text="`${data.count} {{ _('sales') }} \u2022 ${formatCurrency(data.total)}`"></span>
+                                </div>
+                                <div class="list-item-end">
+                                    <span class="badge" x-text="`${data.percentage}%`"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template x-if="Object.keys(stats.payment_methods || {}).length === 0">
+                    <div class="text-center py-8 opacity-40">
+                        {{ icon("card-outline", css_class="text-3xl block mx-auto mb-2") }}
+                        <p class="text-sm">{{ _("No payment data for this period") }}</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Payment Distribution -->
+        <div class="card glass">
+            <div class="card-header">
+                <h2 class="card-title">{{ _("Distribution") }}</h2>
+            </div>
+            <div class="card-body">
+                <template x-if="Object.keys(stats.payment_methods || {}).length > 0">
+                    <div class="bar-chart bar-chart-horizontal" style="height:auto; --bar-chart-height:auto">
+                        <template x-for="(data, method, i) in stats.payment_methods" :key="method">
+                            <div class="bar-chart-item">
+                                <div class="bar-chart-label" x-text="data.label || method"></div>
+                                <div class="bar-chart-bar bar-chart-bar-no-dot"
+                                     :style="`width: ${data.percentage}%; --bar-color: var(--chart-${(i % 5) + 1})`"></div>
+                                <div class="bar-chart-value">
+                                    <span class="bar-chart-value-main" x-text="`${data.percentage}%`"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template x-if="Object.keys(stats.payment_methods || {}).length === 0">
+                    <div class="text-center py-8 opacity-40">
+                        {{ icon("pie-chart-outline", css_class="text-3xl block mx-auto mb-2") }}
+                        <p class="text-sm">{{ _("No data for this period") }}</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div x-show="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-base-100/50">
+        <div class="loading"></div>
+    </div>
+</div>

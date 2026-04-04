@@ -1,0 +1,164 @@
+<div class="p-4">
+    <!-- Sale Header Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="flex justify-between items-center">
+                <h2 class="card-title">{{ _("Sale") }} #{{ sale.sale_number }}</h2>
+                <span class="chip {% if sale.status == 'completed' %}chip--success{% elif sale.status == 'pending' %}chip--warning{% else %}chip--danger{% endif %}">
+                    {{ sale.status_label }}
+                </span>
+            </div>
+            <p class="text-sm opacity-60">
+                {{ sale.created_at|dateformat("d/m/Y H:i") }}
+            </p>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-12 col-md-6">
+                    <div class="mb-3">
+                        <span class="text-muted text-sm">{{ _("Customer") }}</span>
+                        <p class="font-medium mt-1">
+                            {% if sale.customer_name %}
+                                {{ sale.customer_name }}
+                            {% else %}
+                                <span class="text-muted">{{ _("No customer") }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="mb-3">
+                        <span class="text-muted text-sm">{{ _("Employee") }}</span>
+                        <p class="font-medium mt-1">
+                            {% if sale.employee_id %}
+                                {{ icon("person-outline", css_class="align-middle") }}
+                                {{ sale.employee_id }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12 col-md-6">
+                    <div class="mb-3">
+                        <span class="text-muted text-sm">{{ _("Payment Method") }}</span>
+                        <p class="font-medium mt-1">
+                            {{ icon("wallet-outline", css_class="align-middle") }}
+                            {{ sale.payment_method_name }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {% if sale.amount_tendered > 0 %}
+            <div class="row">
+                <div class="col-12 col-md-6">
+                    <div class="mb-3">
+                        <span class="text-muted text-sm">{{ _("Amount Tendered") }}</span>
+                        <p class="font-medium mt-1">{{ currency(sale.amount_tendered) }}</p>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="mb-3">
+                        <span class="text-muted text-sm">{{ _("Change Due") }}</span>
+                        <p class="font-medium mt-1">{{ currency(sale.change_due) }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sale Items Card -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h2 class="card-title">{{ _("Items") }}</h2>
+        </div>
+        <div class="card-body">
+            <div class="list">
+                {% for item in items %}
+                <div class="list-item">
+                    <div class="w-full py-2">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex-1">
+                                <span class="font-medium block">{{ item.product_name }}</span>
+                                <span class="text-muted text-sm">SKU: {{ item.product_sku }}</span>
+                            </div>
+                            <span class="font-semibold">{{ currency(item.line_total) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-muted">
+                                {{ _("Qty:") }} {{ item.quantity }} x {{ currency(item.unit_price) }}
+                                {% if item.discount_percent > 0 %}
+                                    <span class="chip chip--success chip ml-2">
+                                        -{{ "%.2f"|format(item.discount_percent) }}%
+                                    </span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Totals Card -->
+    <div class="card card--secondary mt-4">
+        <div class="card-body">
+            <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium">{{ _("Subtotal:") }}</span>
+                    <span class="font-medium">{{ currency(sale.subtotal) }}</span>
+                </div>
+
+                {% if sale.discount_amount > 0 %}
+                <div class="flex justify-between items-center text-success">
+                    <span class="font-medium">{{ _("Discount:") }}</span>
+                    <span class="font-medium">-{{ currency(sale.discount_amount) }}</span>
+                </div>
+                {% endif %}
+
+                {% if sale.tax_amount > 0 %}
+                <div class="flex justify-between items-center">
+                    <span class="font-medium">{{ _("Tax:") }}</span>
+                    <span class="font-medium">{{ currency(sale.tax_amount) }}</span>
+                </div>
+                {% endif %}
+
+                <hr class="border-b border-base-300 my-2">
+
+                <div class="flex justify-between items-center w-full">
+                    <span class="text-lg font-bold">{{ _("Total:") }}</span>
+                    <span class="text-2xl font-bold text-primary">{{ currency(sale.total) }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mt-4 g-3">
+        <div class="col-12 col-md-6">
+            <button
+                class="btn btn-outline w-full"
+                hx-get="/m/sales/history"
+                hx-target="#main-content-area"
+                hx-push-url="true">
+                {{ icon("arrow-back-outline", css_class="mr-2") }}
+                {{ _("Back to History") }}
+            </button>
+        </div>
+        {% if sale.status == 'completed' %}
+        <div class="col-12 col-md-6">
+            <button class="btn btn-outline w-full" onclick="window.print()">
+                {{ icon("print-outline", css_class="mr-2") }}
+                {{ _("Reprint Receipt") }}
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>

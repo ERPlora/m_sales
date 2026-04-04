@@ -1,0 +1,258 @@
+<div x-data="salesSettingsApp()" class="p-4 space-y-6">
+
+    <!-- General Settings -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">{{ _("Sales Settings") }}</h2>
+        </div>
+        <div class="card-body space-y-4">
+
+            <h3 class="text-sm font-semibold text-muted uppercase tracking-wide">{{ _("Payment Methods Allowed") }}</h3>
+            <div class="space-y-3">
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="form.allow_cash">
+                    <span>{{ _("Cash") }}</span>
+                </label>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="form.allow_card">
+                    <span>{{ _("Card") }}</span>
+                </label>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="form.allow_transfer">
+                    <span>{{ _("Bank Transfer") }}</span>
+                </label>
+            </div>
+
+            <hr class="border-base-300">
+
+            <h3 class="text-sm font-semibold text-muted uppercase tracking-wide">{{ _("POS Sync") }}</h3>
+            <div class="space-y-3">
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="form.sync_products">
+                    <span>{{ _("Sync Products") }}</span>
+                </label>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="form.sync_services">
+                    <span>{{ _("Sync Services") }}</span>
+                </label>
+            </div>
+
+            <hr class="border-base-300">
+
+            <h3 class="text-sm font-semibold text-muted uppercase tracking-wide">{{ _("Options") }}</h3>
+            <div class="space-y-3">
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="form.require_customer">
+                    <span>{{ _("Require Customer") }}</span>
+                </label>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="form.allow_discounts">
+                    <span>{{ _("Allow Discounts") }}</span>
+                </label>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="form.enable_parked_tickets">
+                    <span>{{ _("Enable Parked Tickets") }}</span>
+                </label>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="form.default_tax_included">
+                    <span>{{ _("Tax Included in Price") }}</span>
+                </label>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <label class="text-sm font-medium">{{ _("Ticket Expiry (hours)") }}</label>
+                <input type="number" class="input input-sm" style="width:100px" min="1" max="168"
+                    x-model.number="form.ticket_expiry_hours">
+            </div>
+
+            <hr class="border-base-300">
+
+            <h3 class="text-sm font-semibold text-muted uppercase tracking-wide">{{ _("Receipt") }}</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-sm font-medium">{{ _("Receipt Header") }}</label>
+                    <textarea class="textarea w-full" rows="3" x-model="form.receipt_header"
+                        placeholder="{{ _('Business name, address, etc.') }}"></textarea>
+                </div>
+                <div>
+                    <label class="text-sm font-medium">{{ _("Receipt Footer") }}</label>
+                    <textarea class="textarea w-full" rows="3" x-model="form.receipt_footer"
+                        placeholder="{{ _('Thank you message, policies, etc.') }}"></textarea>
+                </div>
+            </div>
+
+            <button class="btn color-primary" @click="saveSettings()" :disabled="saving">
+                <span x-show="!saving">{{ icon("save-outline", css_class="mr-2") }} {{ _("Save Settings") }}</span>
+                <span x-show="saving" class="loading loading-sm"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Payment Methods -->
+    <div class="card">
+        <div class="card-header">
+            <div class="flex justify-between items-center">
+                <h2 class="card-title">{{ _("Payment Methods") }}</h2>
+                <button class="btn btn-sm color-primary" @click="showAddPM = true">
+                    {{ icon("add-outline", css_class="mr-1") }} {{ _("Add") }}
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if payment_methods %}
+            <div class="list">
+                {% for pm in payment_methods %}
+                <div class="list-item" x-data="{ editing: false }">
+                    <div class="list-item-content" x-show="!editing">
+                        <div class="flex items-center gap-2">
+                            {% if pm.icon %}{{ icon(pm.icon) }}{% endif %}
+                            <span class="font-medium">{{ pm.name }}</span>
+                            <span class="chip chip--sm">{{ pm.type }}</span>
+                            {% if not pm.is_active %}
+                            <span class="chip chip--sm chip--warning">{{ _("Inactive") }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-xs text-muted mt-1">
+                            {% if pm.opens_cash_drawer %}{{ _("Opens drawer") }} &bull; {% endif %}
+                            {% if pm.requires_change %}{{ _("Requires change") }}{% endif %}
+                        </div>
+                    </div>
+                    <div class="list-item-end" x-show="!editing">
+                        <button class="btn btn-ghost btn-sm" @click="editing = true">
+                            {{ icon("create-outline") }}
+                        </button>
+                        <button class="btn btn-ghost btn-sm text-error" @click="deletePM('{{ pm.id }}')">
+                            {{ icon("trash-outline") }}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-muted">
+                {{ icon("card-outline", css_class="text-4xl block mx-auto mb-2") }}
+                <p>{{ _("No payment methods configured") }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add Payment Method Modal -->
+    <div class="modal-backdrop" x-show="showAddPM" x-cloak>
+        <div class="modal" @click.outside="showAddPM = false">
+            <div class="modal-header">
+                <h2 class="modal-title">{{ _("Add Payment Method") }}</h2>
+                <button @click="showAddPM = false" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body space-y-3">
+                <div>
+                    <label class="text-sm font-medium">{{ _("Name") }}</label>
+                    <input type="text" class="input w-full" x-model="newPM.name" placeholder="{{ _('Payment method name') }}">
+                </div>
+                <div>
+                    <label class="text-sm font-medium">{{ _("Type") }}</label>
+                    <select class="select w-full" x-model="newPM.type">
+                        <option value="cash">{{ _("Cash") }}</option>
+                        <option value="card">{{ _("Card") }}</option>
+                        <option value="transfer">{{ _("Bank Transfer") }}</option>
+                        <option value="other">{{ _("Other") }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-sm font-medium">{{ _("Icon") }}</label>
+                    <input type="text" class="input w-full" x-model="newPM.icon" placeholder="cash-outline">
+                </div>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="newPM.opens_cash_drawer">
+                    <span>{{ _("Opens Cash Drawer") }}</span>
+                </label>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="toggle" x-model="newPM.requires_change">
+                    <span>{{ _("Requires Change") }}</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" @click="showAddPM = false">{{ _("Cancel") }}</button>
+                <button class="btn color-primary" @click="createPM()">{{ _("Create") }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ csp_nonce }}">
+function salesSettingsApp() {
+    return {
+        saving: false,
+        showAddPM: false,
+        form: {
+            allow_cash: {{ 'true' if settings.allow_cash else 'false' }},
+            allow_card: {{ 'true' if settings.allow_card else 'false' }},
+            allow_transfer: {{ 'true' if settings.allow_transfer else 'false' }},
+            sync_products: {{ 'true' if settings.sync_products else 'false' }},
+            sync_services: {{ 'true' if settings.sync_services else 'false' }},
+            require_customer: {{ 'true' if settings.require_customer else 'false' }},
+            allow_discounts: {{ 'true' if settings.allow_discounts else 'false' }},
+            enable_parked_tickets: {{ 'true' if settings.enable_parked_tickets else 'false' }},
+            default_tax_included: {{ 'true' if settings.default_tax_included else 'false' }},
+            ticket_expiry_hours: {{ settings.ticket_expiry_hours }},
+            receipt_header: `{{ settings.receipt_header|default('') }}`,
+            receipt_footer: `{{ settings.receipt_footer|default('') }}`,
+        },
+        newPM: {
+            name: '', type: 'cash', icon: '', is_active: true,
+            sort_order: 0, opens_cash_drawer: false, requires_change: false,
+        },
+
+        async saveSettings() {
+            this.saving = true;
+            try {
+                const resp = await fetch('/m/sales/settings/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(this.form),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    htmx.trigger(document.body, 'showMessage', {level: 'success', text: '{{ _("Settings saved") }}'});
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                this.saving = false;
+            }
+        },
+
+        async createPM() {
+            try {
+                const resp = await fetch('/m/sales/settings/payment-methods/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(this.newPM),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    this.showAddPM = false;
+                    htmx.ajax('GET', '/m/sales/settings', {target: '#main-content-area'});
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+
+        async deletePM(id) {
+            if (!confirm('{{ _("Delete this payment method?") }}')) return;
+            try {
+                const resp = await fetch(`/m/sales/settings/payment-methods/${id}/delete`, {
+                    method: 'POST',
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    htmx.ajax('GET', '/m/sales/settings', {target: '#main-content-area'});
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+    }
+}
+</script>

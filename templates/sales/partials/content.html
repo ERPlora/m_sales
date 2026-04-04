@@ -1,0 +1,144 @@
+<div class="p-4">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="card">
+            <div class="card-body p-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                        {{ icon("receipt-outline", css_class="text-2xl text-primary") }}
+                    </div>
+                    <div>
+                        <div class="text-sm text-muted">{{ _("Sales Today") }}</div>
+                        <div class="text-2xl font-semibold">{{ sales_count_today }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
+                        {{ icon("cash-outline", css_class="text-2xl text-success") }}
+                    </div>
+                    <div>
+                        <div class="text-sm text-muted">{{ _("Revenue Today") }}</div>
+                        <div class="text-2xl font-semibold">{{ currency(sales_total_today) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
+                        {{ icon("calendar-outline", css_class="text-2xl text-warning") }}
+                    </div>
+                    <div>
+                        <div class="text-sm text-muted">{{ _("Sales This Week") }}</div>
+                        <div class="text-2xl font-semibold">{{ sales_count_week }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
+                        {{ icon("trending-up-outline", css_class="text-2xl text-success") }}
+                    </div>
+                    <div>
+                        <div class="text-sm text-muted">{{ _("Revenue This Week") }}</div>
+                        <div class="text-2xl font-semibold">{{ currency(sales_total_week) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sales -->
+    <div class="mb-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="flex justify-between items-center">
+                    <h2 class="card-title">{{ _("Recent Sales") }}</h2>
+                    <button class="btn btn-ghost btn-sm"
+                        hx-get="/m/sales/history"
+                        hx-target="#main-content-area"
+                        hx-push-url="true">
+                        {{ _("View all") }}
+                        {{ icon("arrow-forward-outline", css_class="ml-1") }}
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_sales %}
+                <div class="space-y-3">
+                    {% for sale in recent_sales %}
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-base-100">
+                        <div>
+                            <div class="font-medium">{{ sale.sale_number }}</div>
+                            <div class="text-xs text-muted">
+                                {{ sale.created_at|dateformat("d/m/Y H:i") }}
+                                {% if sale.customer_name %} - {{ sale.customer_name }}{% endif %}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-semibold text-success">{{ currency(sale.total) }}</div>
+                            <div class="text-xs text-muted">{{ sale.payment_method_name }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-muted">
+                    {{ icon("receipt-outline", css_class="text-5xl block mx-auto mb-2") }}
+                    <p class="mt-2">{{ _("No recent sales") }}</p>
+                    <a href="/m/sales/pos" class="btn color-success btn-sm mt-3">
+                        {{ _("Make first sale") }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Methods Breakdown -->
+    {% if payment_stats %}
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">{{ _("Payment Methods (Today)") }}</h2>
+        </div>
+        <div class="card-body">
+            <div class="overflow-x-auto">
+                <table class="table w-full">
+                    <caption class="sr-only">Content</caption>
+                    <thead class="table__head">
+                        <tr>
+                            <th class="table__th">{{ _("Method") }}</th>
+                            <th class="table__th text-center">{{ _("Count") }}</th>
+                            <th class="table__th text-right">{{ _("Total") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="table__body">
+                        {% for method, stats in payment_stats.items() %}
+                        <tr class="table__row">
+                            <td class="table__td">
+                                <div class="flex items-center gap-2">
+                                    {{ icon("wallet-outline") }}
+                                    <span>{{ method }}</span>
+                                </div>
+                            </td>
+                            <td class="table__td text-center">{{ stats.count }}</td>
+                            <td class="table__td text-right font-semibold text-success">{{ currency(stats.total) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>

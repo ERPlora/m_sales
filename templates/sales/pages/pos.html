@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block content %}
+{# POS is a full-page view — no sidebar, no tabbar #}
+<div x-data="posApp()" x-init="init()" class="pos-container h-screen flex flex-col">
+
+    {# POS Top Bar #}
+    <header class="pos-header flex items-center justify-between px-4 py-2 bg-base-200 border-b border-base-300">
+        <div class="flex items-center gap-3">
+            <a href="/m/sales/" class="btn btn-ghost btn-sm">
+                {{ icon("arrow-back-outline") }}
+            </a>
+            <h1 class="text-lg font-semibold">{{ _("Point of Sale") }}</h1>
+        </div>
+        <div class="flex items-center gap-2">
+            {# Slot: POS toolbar (customers, loyalty, etc.) #}
+            {{ render_slot("sales.pos_toolbar") }}
+            <button class="btn btn-ghost btn-sm" @click="loadParkedTickets()" :class="parkedCount > 0 ? 'text-warning' : ''">
+                {{ icon("bookmark-outline") }}
+                <span x-show="parkedCount > 0" class="badge badge-sm color-warning ml-1" x-text="parkedCount"></span>
+            </button>
+        </div>
+    </header>
+
+    {# Main POS area: Products (left) + Cart (right) #}
+    <div class="flex-1 flex overflow-hidden">
+
+        {# Products Grid #}
+        <div class="flex-1 flex flex-col overflow-hidden">
+            {# Search + Categories #}
+            <div class="px-4 py-3 bg-base-100 border-b border-base-300">
+                <div class="flex items-center gap-3">
+                    <div class="flex-1 relative">
+                        <input type="text" class="input w-full pl-10"
+                            placeholder="{{ _('Search products...') }}"
+                            x-model="searchQuery"
+                            @input.debounce.300ms="loadProducts()">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 opacity-50">
+                            {{ icon("search-outline") }}
+                        </span>
+                    </div>
+                </div>
+                {# Categories #}
+                <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
+                    <button class="chip" :class="!selectedCategory ? 'chip--primary' : ''"
+                        @click="selectedCategory = ''; loadProducts()">
+                        {{ _("All") }}
+                    </button>
+                    {% for cat in categories %}
+                    <button class="chip" :class="selectedCategory === '{{ cat.id }}' ? 'chip--primary' : ''"
+                        @click="selectedCategory = '{{ cat.id }}'; loadProducts()">
+                        {{ cat.name }}
+                    </button>
+                    {% endfor %}
+                    {% for cat in service_categories %}
+                    <button class="chip" :class="selectedCategory === 'svc-{{ cat.id }}' ? 'chip--primary' : ''"
+                        @click="selectedCategory = 'svc-{{ cat.id }}'; loadProducts()">
+                        {{ cat.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# Product Grid #}
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <template x-for="product in products" :key="product.id">
+                        <button class="card card--interactive p-3 text-center"
+                            @click="addToCart(product)">
+                            <div class="text-sm font-medium truncate" x-text="product.name"></div>
+                            <div class="text-lg font-bold text-primary mt-1" x-text="formatCurrency(product.price)"></div>
+                            <template x-if="product.stock !== null && product.stock !== undefined">
+                                <div class="text-xs mt-1" :class="product.stock > 0 ? 'text-muted' : 'text-error'"
+                                    x-text="product.stock > 0 ? `${product.stock} {{ _('in stock') }}` : '{{ _('Out of stock') }}'">
+                                </div>
+                            </template>
+                        </button>
+                    </template>
+                </div>
+                <template x-if="products.length === 0 && !loadingProducts">
+                    <div class="text-center py-12 text-muted">
+                        {{ icon("cube-outline", css_class="text-5xl block mx-auto mb-3") }}
+                        <p>{{ _("No products found") }}</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        {# Cart Panel #}
+        <div class="w-80 lg:w-96 flex flex-col bg-base-100 border-l border-base-300">
+            {# Slot: Cart header (customer info) #}
+            {{ render_slot("sales.pos_cart_header") }}
+
+            {# Cart Items #}
+            <div class="flex-1 overflow-y-auto p-3">
+                <template x-if="cart.length === 0">
+                    <div class="text-center py-8 text-muted">
+                        {{ icon("cart-outline", css_class="text-4xl block mx-auto mb-2") }}
+                        <p class="text-sm">{{ _("Cart is empty") }}</p>
+                    </div>
+                </template>
+                <template x-for="(item, index) in cart" :key="index">
+                    <div class="flex items-center gap-2 py-2 border-b border-base-200">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-medium truncate" x-text="item.product_name"></div>
+                            <div class="text-xs text-muted" x-text="formatCurrency(item.price) + ' x ' + item.quantity"></div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button class="btn btn-ghost btn-xs" @click="updateQty(index, -1)">-</button>
+                            <span class="text-sm font-medium w-6 text-center" x-text="item.quantity"></span>
+                            <button class="btn btn-ghost btn-xs" @click="updateQty(index, 1)">+</button>
+                        </div>
+                        <div class="text-sm font-semibold w-16 text-right" x-text="formatCurrency(item.price * item.quantity)"></div>
+                        <button class="btn btn-ghost btn-xs text-error" @click="removeFromCart(index)">
+                            {{ icon("close-outline") }}
+                        </button>
+                    </div>
+                </template>
+            </div>
+
+            {# Cart Totals #}
+            <div class="p-3 border-t border-base-300 bg-base-200">
+                <div class="flex justify-between text-sm mb-1">
+                    <span>{{ _("Subtotal") }}</span>
+                    <span x-text="formatCurrency(cartSubtotal)"></span>
+                </div>
+                <div class="flex justify-between text-sm mb-1" x-show="cartTax > 0">
+                    <span>{{ _("Tax") }}</span>
+                    <span x-text="formatCurrency(cartTax)"></span>
+                </div>
+                <div class="flex justify-between text-lg font-bold mt-2">
+                    <span>{{ _("Total") }}</span>
+                    <span class="text-primary" x-text="formatCurrency(cartTotal)"></span>
+                </div>
+            </div>
+
+            {# Payment Methods #}
+            <div class="p-3 border-t border-base-300">
+                <div class="grid grid-cols-{{ payment_methods|length if payment_methods|length <= 3 else 3 }} gap-2 mb-3">
+                    {% for pm in payment_methods %}
+                    <button class="btn btn-outline btn-sm"
+                        :class="selectedPM === '{{ pm.id }}' ? 'btn-active color-primary' : ''"
+                        @click="selectedPM = '{{ pm.id }}'; selectedPMName = '{{ pm.name }}'">
+                        {% if pm.icon %}{{ icon(pm.icon, css_class="mr-1") }}{% endif %}
+                        {{ pm.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="flex gap-2">
+                    <button class="btn color-primary flex-1"
+                        :disabled="cart.length === 0 || !selectedPM || processing"
+                        @click="completeSale()">
+                        <span x-show="!processing">{{ icon("checkmark-circle-outline", css_class="mr-1") }} {{ _("Pay") }}</span>
+                        <span x-show="processing" class="loading loading-sm"></span>
+                    </button>
+                    {% if settings.enable_parked_tickets %}
+                    <button class="btn btn-outline" :disabled="cart.length === 0"
+                        @click="parkTicket()">
+                        {{ icon("bookmark-outline") }}
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Slot: POS modals (customer search, etc.) #}
+    {{ render_slot("sales.pos_modals") }}
+</div>
+
+<script nonce="{{ csp_nonce }}">
+function posApp() {
+    return {
+        products: [],
+        cart: [],
+        searchQuery: '',
+        selectedCategory: '',
+        selectedPM: '',
+        selectedPMName: '',
+        processing: false,
+        loadingProducts: false,
+        parkedCount: 0,
+
+        init() {
+            this.loadProducts();
+            this.loadActiveCart();
+            this.loadParkedCount();
+        },
+
+        formatCurrency(amount) {
+            return new Intl.NumberFormat('{{ LANGUAGE_CODE|default("es") }}', {
+                style: 'currency',
+                currency: '{{ HUB_CONFIG.currency|default("EUR") }}'
+            }).format(amount);
+        },
+
+        get cartSubtotal() {
+            return this.cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+        },
+
+        get cartTax() {
+            return this.cart.reduce((sum, i) => {
+                const lineTotal = i.price * i.quantity;
+                const taxRate = i.tax_rate || 0;
+                const taxDivisor = 1 + (taxRate / 100);
+                return sum + (lineTotal - lineTotal / taxDivisor);
+            }, 0);
+        },
+
+        get cartTotal() {
+            return this.cartSubtotal;
+        },
+
+        async loadProducts() {
+            this.loadingProducts = true;
+            try {
+                const params = new URLSearchParams();
+                if (this.selectedCategory) params.set('category', this.selectedCategory);
+                if (this.searchQuery) params.set('search', this.searchQuery);
+                const resp = await fetch(`/m/sales/pos/api/products?${params}`);
+                const data = await resp.json();
+                if (data.success) this.products = data.products;
+            } catch (e) {
+                console.error('[POS] Load products error:', e);
+            } finally {
+                this.loadingProducts = false;
+            }
+        },
+
+        addToCart(product) {
+            const existing = this.cart.find(i => i.product_id === product.id);
+            if (existing) {
+                existing.quantity++;
+            } else {
+                this.cart.push({
+                    product_id: product.id,
+                    product_name: product.name,
+                    product_sku: product.sku || '',
+                    price: product.price,
+                    quantity: 1,
+                    is_service: product.is_service || false,
+                    tax_rate: product.tax_rate || 0,
+                    tax_class_name: product.tax_class_name || '',
+                    discount: 0,
+                });
+            }
+            this.saveActiveCart();
+        },
+
+        updateQty(index, delta) {
+            this.cart[index].quantity += delta;
+            if (this.cart[index].quantity <= 0) {
+                this.cart.splice(index, 1);
+            }
+            this.saveActiveCart();
+        },
+
+        removeFromCart(index) {
+            this.cart.splice(index, 1);
+            this.saveActiveCart();
+        },
+
+        async completeSale() {
+            if (this.cart.length === 0 || !this.selectedPM) return;
+            this.processing = true;
+            try {
+                const resp = await fetch('/m/sales/pos/api/complete-sale', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        items: this.cart,
+                        payment_method_id: this.selectedPM,
+                        amount_tendered: this.cartTotal,
+                        customer_name: '',
+                        notes: '',
+                    }),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    this.cart = [];
+                    this.clearActiveCart();
+                    htmx.trigger(document.body, 'showMessage', {
+                        level: 'success',
+                        text: `{{ _("Sale") }} #${data.sale_number} - ${this.formatCurrency(data.total)}`
+                    });
+                } else {
+                    htmx.trigger(document.body, 'showMessage', {level: 'error', text: data.error});
+                }
+            } catch (e) {
+                console.error('[POS] Complete sale error:', e);
+            } finally {
+                this.processing = false;
+            }
+        },
+
+        async saveActiveCart() {
+            try {
+                await fetch('/m/sales/pos/api/cart/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({items: this.cart}),
+                });
+            } catch (e) {}
+        },
+
+        async loadActiveCart() {
+            try {
+                const resp = await fetch('/m/sales/pos/api/cart/load');
+                const data = await resp.json();
+                if (data.success && data.cart_data && data.cart_data.items) {
+                    this.cart = data.cart_data.items;
+                }
+            } catch (e) {}
+        },
+
+        async clearActiveCart() {
+            try {
+                await fetch('/m/sales/pos/api/cart/clear', {method: 'POST'});
+            } catch (e) {}
+        },
+
+        async parkTicket() {
+            if (this.cart.length === 0) return;
+            try {
+                const resp = await fetch('/m/sales/pos/api/park', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({items: this.cart, notes: ''}),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    this.cart = [];
+                    this.clearActiveCart();
+                    this.loadParkedCount();
+                    htmx.trigger(document.body, 'showMessage', {
+                        level: 'success', text: `{{ _("Ticket parked:") }} ${data.ticket_number}`
+                    });
+                }
+            } catch (e) {}
+        },
+
+        async loadParkedCount() {
+            try {
+                const resp = await fetch('/m/sales/pos/api/parked');
+                const data = await resp.json();
+                if (data.success) this.parkedCount = data.count;
+            } catch (e) {}
+        },
+
+        async loadParkedTickets() {
+            // TODO: Show parked tickets modal for recovery
+            this.loadParkedCount();
+        },
+    }
+}
+</script>
+{% endblock %}
