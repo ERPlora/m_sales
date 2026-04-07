@@ -54,6 +54,14 @@ Universal sales engine. Models: Sale, SaleItem, PaymentMethod, SalesSettings, Ac
 - Sale -> Customer (FK to customers module)
 - Sale -> Employee (UUID, no FK)
 
+### Business Rules (enforced by AI tools)
+
+- **Void sale**: cannot void if already voided or refunded; cannot void a draft (delete instead)
+- **Void invoiced sale**: blocked if the sale has been invoiced — must void the invoice first
+- **Payment method types**: must be one of: cash, card, transfer, other
+- **Sales stats**: defaults to today; only counts completed sales
+- **Status flow**: draft -> pending -> completed -> voided OR refunded
+
 ### Architecture Notes
 - sales is the universal engine — NO POS interface (that's the pos module)
 - pos module uses sales for completing transactions
