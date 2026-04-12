@@ -257,19 +257,15 @@ class VoidSale(AssistantTool):
         if sale.status == "draft":
             return {"error": "Cannot void a draft sale — delete it instead"}
 
-        # Check if the sale has been invoiced (invoicing module integration)
+        # Fiscal lock: cannot void a sale that has an active invoice linked.
+        from modules.sales.services.sale_void_guard import (
+            SaleCannotBeVoidedError,
+            ensure_voidable,
+        )
         try:
-            from invoicing.models import Invoice
-            invoice = await _q(Invoice, db, hub_id).filter(
-                Invoice.sale_id == sale.id,
-            ).first()
-            if invoice:
-                return {
-                    "error": f"Cannot void sale #{sale.sale_number}: it has been invoiced "
-                    f"(invoice #{invoice.invoice_number}). Void the invoice first.",
-                }
-        except (ImportError, Exception):
-            pass  # invoicing module not installed — skip check
+            await ensure_voidable(db, hub_id, sale)
+        except SaleCannotBeVoidedError as exc:
+            return {"error": str(exc)}
 
         async with atomic(db):
             sale.status = "voided"

@@ -130,6 +130,16 @@ async def void_sale(
     if sale.status == "voided":
         return JSONResponse({"error": "Sale is already voided"}, status_code=400)
 
+    # Fiscal lock: cannot void a sale that has an active invoice linked.
+    from modules.sales.services.sale_void_guard import (
+        SaleCannotBeVoidedError,
+        ensure_voidable,
+    )
+    try:
+        await ensure_voidable(db, hub_id, sale)
+    except SaleCannotBeVoidedError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=409)
+
     sale.status = "voided"
     await db.flush()
     return {"id": str(sale.id), "status": "voided"}

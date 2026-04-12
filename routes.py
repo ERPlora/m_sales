@@ -534,6 +534,19 @@ async def void_sale(
     if sale.status == "voided":
         return JSONResponse({"success": False, "error": "Sale is already voided"})
 
+    # Fiscal lock: cannot void a sale that has an active invoice linked.
+    from modules.sales.services.sale_void_guard import (
+        SaleCannotBeVoidedError,
+        ensure_voidable,
+    )
+    try:
+        await ensure_voidable(db, hub_id, sale)
+    except SaleCannotBeVoidedError as exc:
+        return JSONResponse(
+            {"success": False, "error": str(exc)},
+            status_code=409,
+        )
+
     try:
         async with atomic(db) as session:
             # Restore stock for physical products
