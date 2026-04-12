@@ -163,6 +163,7 @@ class Sale(HubBaseModel):
         Index("ix_sales_hub_number", "hub_id", "sale_number"),
         Index("ix_sales_hub_status", "hub_id", "status"),
         Index("ix_sales_hub_employee_created", "hub_id", "employee_id", "created_at"),
+        Index("ix_sales_hub_source_module", "hub_id", "source_module"),
     )
 
     sale_number: Mapped[str] = mapped_column(
@@ -221,6 +222,33 @@ class Sale(HubBaseModel):
 
     notes: Mapped[str] = mapped_column(
         Text, default="", server_default="",
+    )
+
+    # Multi-channel fields (Phase 1 of sales restructuring)
+    source_module: Mapped[str] = mapped_column(
+        String(50), default="", server_default="",
+        index=True,
+    )
+    channel: Mapped[str] = mapped_column(
+        String(50), default="", server_default="",
+    )
+    priority: Mapped[str] = mapped_column(
+        String(20), default="normal", server_default="normal",
+    )
+    customer_phone: Mapped[str] = mapped_column(
+        String(50), default="", server_default="",
+    )
+    delivery_address: Mapped[str] = mapped_column(
+        Text, default="", server_default="",
+    )
+    requested_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+    )
+    internal_notes: Mapped[str] = mapped_column(
+        Text, default="", server_default="",
+    )
+    assigned_to: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True,
     )
 
     # Relationships

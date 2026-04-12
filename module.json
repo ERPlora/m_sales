@@ -1,7 +1,7 @@
 {
   "id": "sales",
   "name": "Sales & POS",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "description": "Universal sales engine with multi-tax support, payment methods, and reporting",
   "author": "ERPlora",
   "category": "pos",
