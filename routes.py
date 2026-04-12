@@ -50,7 +50,7 @@ def _q(model, db, hub_id):
 # ============================================================================
 
 @router.get("/")
-@htmx_view(module_id="sales", view_id="dashboard")
+@htmx_view(module_id="sales", view_id="dashboard", partial_template="sales/partials/content.html", permissions="sales.view_sale")
 async def dashboard(request: Request, db: DbSession, user: CurrentUser, hub_id: HubId):
     """Sales dashboard with KPIs."""
     today = datetime.now(UTC).date()
@@ -103,7 +103,7 @@ async def dashboard(request: Request, db: DbSession, user: CurrentUser, hub_id: 
 # ============================================================================
 
 @router.get("/pos")
-@htmx_view(module_id="sales", view_id="pos_screen", login_required=True)
+@htmx_view(module_id="sales", view_id="pos_screen", login_required=True, permissions="sales.add_sale")
 async def pos_screen(request: Request, db: DbSession, user: CurrentUser, hub_id: HubId):
     """POS full-screen view."""
     settings_q = _q(SalesSettings, db, hub_id)
@@ -370,7 +370,7 @@ async def complete_sale(
 # ============================================================================
 
 @router.get("/history")
-@htmx_view(module_id="sales", view_id="history")
+@htmx_view(module_id="sales", view_id="history", permissions="sales.view_sale")
 async def sales_history(
     request: Request, db: DbSession, user: CurrentUser, hub_id: HubId,
     search: str = "", status: str = "", date_from: str = "", date_to: str = "",
@@ -474,7 +474,7 @@ async def sales_list_ajax(
 
 
 @router.get("/history/{sale_id}")
-@htmx_view(module_id="sales", view_id="history")
+@htmx_view(module_id="sales", view_id="history", permissions="sales.view_sale")
 async def sale_detail(
     request: Request, sale_id: uuid.UUID,
     db: DbSession, user: CurrentUser, hub_id: HubId,
@@ -537,7 +537,7 @@ async def void_sale(
 # ============================================================================
 
 @router.get("/reports")
-@htmx_view(module_id="sales", view_id="reports")
+@htmx_view(module_id="sales", view_id="reports", permissions="sales.view_reports")
 async def reports(request: Request, db: DbSession, user: CurrentUser, hub_id: HubId):
     """Reports page."""
     week_ago = datetime.now(UTC).date() - timedelta(days=7)
@@ -659,7 +659,7 @@ async def reports_stats_ajax(
 # ============================================================================
 
 @router.get("/settings")
-@htmx_view(module_id="sales", view_id="settings")
+@htmx_view(module_id="sales", view_id="settings", permissions="sales.manage_settings")
 async def settings_view(request: Request, db: DbSession, user: CurrentUser, hub_id: HubId):
     """Sales settings page."""
     settings_q = _q(SalesSettings, db, hub_id)
