@@ -353,7 +353,7 @@ async def complete_sale(
             sale.calculate_totals(items=sale_items)
             sale.calculate_change(sale_data.amount_tendered)
 
-        # Emit sales.completed after commit — invoice/verifactu/other modules consume this
+        # Emit sale.completed after commit — invoice/verifactu/other modules consume this
         try:
             from .events import emit_sale_completed
             await emit_sale_completed(
@@ -369,7 +369,7 @@ async def complete_sale(
                 sale_number=sale.sale_number or "",
             )
         except Exception:
-            logger.exception("Failed to emit sales.completed for sale %s", sale.id)
+            logger.exception("Failed to emit sale.completed for sale %s", sale.id)
             # NO re-raise: sale is already committed to DB; event failure must not break the flow
 
         return JSONResponse({
@@ -549,7 +549,7 @@ async def void_sale(
 
             sale.status = "voided"
 
-        # Emit sales.voided after commit — for future consumers
+        # Emit sale.voided after commit — for future consumers
         try:
             from .events import emit_sale_voided
             await emit_sale_voided(
@@ -559,7 +559,7 @@ async def void_sale(
                 sale_number=sale.sale_number or "",
             )
         except Exception:
-            logger.exception("Failed to emit sales.voided for sale %s", sale.id)
+            logger.exception("Failed to emit sale.voided for sale %s", sale.id)
 
         return JSONResponse({"success": True})
     except Exception as e:

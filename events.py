@@ -70,9 +70,9 @@ async def emit_sale_completed(
     customer_name: str = "",
     sale_number: str = "",
 ) -> None:
-    """Emit sales.completed — invoice module subscribes to auto-create Invoice F2."""
+    """Emit sale.completed — invoice module subscribes to auto-create Invoice F2."""
     await bus.emit(
-        "sales.completed",
+        "sale.completed",
         sender=MODULE_ID,
         sale_id=sale_id,
         hub_id=hub_id,
@@ -84,7 +84,7 @@ async def emit_sale_completed(
         customer_name=customer_name,
         sale_number=sale_number,
     )
-    logger.info("Emitted sales.completed for sale %s (hub %s)", sale_id, hub_id)
+    logger.info("Emitted sale.completed for sale %s (hub %s)", sale_id, hub_id)
 
 
 async def emit_sale_voided(
@@ -94,15 +94,15 @@ async def emit_sale_voided(
     hub_id: str,
     sale_number: str = "",
 ) -> None:
-    """Emit sales.voided — for future consumers (analytics, stock reconciliation, etc.)."""
+    """Emit sale.voided — for future consumers (analytics, stock reconciliation, etc.)."""
     await bus.emit(
-        "sales.voided",
+        "sale.voided",
         sender=MODULE_ID,
         sale_id=sale_id,
         hub_id=hub_id,
         sale_number=sale_number,
     )
-    logger.info("Emitted sales.voided for sale %s (hub %s)", sale_id, hub_id)
+    logger.info("Emitted sale.voided for sale %s (hub %s)", sale_id, hub_id)
 
 
 async def emit_sale_refunded(
@@ -113,13 +113,13 @@ async def emit_sale_refunded(
     refund_amount: float = 0.0,
     sale_number: str = "",
 ) -> None:
-    """Emit sales.refunded — for future consumers (invoice rectification, analytics, etc.)."""
+    """Emit sale.refunded — for future consumers (invoice rectification, analytics, etc.)."""
     await bus.emit(
-        "sales.refunded",
+        "sale.refunded",
         sender=MODULE_ID,
         sale_id=sale_id,
         hub_id=hub_id,
         refund_amount=refund_amount,
         sale_number=sale_number,
     )
-    logger.info("Emitted sales.refunded for sale %s (hub %s)", sale_id, hub_id)
+    logger.info("Emitted sale.refunded for sale %s (hub %s)", sale_id, hub_id)
