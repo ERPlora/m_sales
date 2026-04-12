@@ -146,3 +146,131 @@ class SaleService:
         sale.calculate_totals(items=sale_items)
         sale.calculate_change(Decimal(str(amount_tendered)))
         return sale
+
+
+# ---------------------------------------------------------------------------
+# Void sale — module-level function (not a SaleService method)
+# ---------------------------------------------------------------------------
+
+async def void_sale(
+    session: AsyncSession,
+    hub_id: UUID,
+    sale: Sale,
+    *,
+    reason: str = "",
+    cascade_invoice: bool = False,
+    bus: Any = None,
+) -> dict:
+    """Void a sale, optionally cascading into invoice rectification.
+
+    If cascade_invoice=True and there is an active invoice linked to the sale,
+    the function delegates to InvoiceService.rectify() (which creates an R1
+    invoice with negated amounts and marks the original as 'cancelled'), then
+    emits ``invoice.cancelled`` so verifactu can produce the 'anulacion' record.
+
+    If cascade_invoice=False (default) and there is an active invoice, raises
+    SaleCannotBeVoidedError.
+
+    Parameters
+    ----------
+    session:
+        Open AsyncSession — caller controls the transaction boundary.
+    hub_id:
+        UUID of the current hub.
+    sale:
+        Sale ORM instance to void.
+    reason:
+        Human-readable reason stored in sale.notes and invoice description.
+    cascade_invoice:
+        When True, auto-issue a rectifying invoice instead of blocking.
+    bus:
+        AsyncEventBus instance.  When provided, sale.voided is emitted after
+        the void.  Pass None to skip event emission (e.g. in tests).
+
+    Returns
+    -------
+    dict
+        ``{sale_number, status, cascaded, rectification_id}``
+
+    Raises
+    ------
+    SaleCannotBeVoidedError
+        If an active invoice exists and cascade_invoice is False.
+    """
+    from sales.services.sale_void_guard import (
+        SaleCannotBeVoidedError,
+        find_active_invoice_for_sale,
+    )
+
+    active_invoice = await find_active_invoice_for_sale(session, hub_id, sale.id)
+    rect_invoice_id: str | None = None
+    cascaded = False
+
+    if active_invoice is not None:
+        if not cascade_invoice:
+            from sales.services.sale_void_guard import SaleCannotBeVoidedError
+            raise SaleCannotBeVoidedError(sale.sale_number, active_invoice)
+
+        # Delegate rectification to InvoiceService (already has full R1 logic).
+        try:
+            from invoice.services.invoice_service import InvoiceService
+        except ImportError as exc:
+            raise RuntimeError(
+                "invoice module is required for cascade void but is not installed"
+            ) from exc
+
+        svc = InvoiceService(session, hub_id)
+        rect_invoice = await svc.rectify(
+            active_invoice.invoice_id,
+            reason=reason or f"Void of sale #{sale.sale_number}",
+        )
+        cascaded = True
+        rect_invoice_id = str(rect_invoice.id)
+
+        # Emit invoice.cancelled for verifactu (original invoice id, not rect).
+        if bus is not None:
+            try:
+                from invoice.events import emit_invoice_cancelled, emit_invoice_rectified
+                await emit_invoice_cancelled(
+                    bus,
+                    invoice_id=str(active_invoice.invoice_id),
+                    hub_id=str(hub_id),
+                )
+                await emit_invoice_rectified(
+                    bus,
+                    original_invoice_id=str(active_invoice.invoice_id),
+                    rectifying_invoice_id=rect_invoice_id,
+                    hub_id=str(hub_id),
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to emit invoice events for cascade void of sale %s — "
+                    "rectification was committed, fiscal events may be delayed",
+                    sale.sale_number,
+                )
+
+    # Mark sale as voided with traceability note.
+    sale.status = "voided"
+    suffix = f"[VOIDED] {reason}".strip() if reason else "[VOIDED]"
+    sale.notes = f"{sale.notes}\n{suffix}".strip() if sale.notes else suffix
+    await session.flush()
+
+    # Emit sale.voided for audit / downstream consumers.
+    if bus is not None:
+        try:
+            from sales.events import emit_sale_voided
+            await emit_sale_voided(
+                bus,
+                sale_id=str(sale.id),
+                hub_id=str(hub_id),
+                sale_number=sale.sale_number or "",
+            )
+        except Exception:
+            logger.exception("Failed to emit sale.voided for sale %s", sale.sale_number)
+
+    return {
+        "sale_number": sale.sale_number,
+        "status": sale.status,
+        "cascaded": cascaded,
+        "rectification_id": rect_invoice_id,
+    }
