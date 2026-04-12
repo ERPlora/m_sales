@@ -256,6 +256,12 @@ class Sale(HubBaseModel):
         Uuid, nullable=True, index=True,
     )
 
+    # Table reference (dine-in). No FK real cross-module — only UUID indexed.
+    table_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True, index=True,
+        comment="Table where this sale was taken (dine-in). Optional.",
+    )
+
     # Relationships
     payment_method_rel: Mapped[PaymentMethod | None] = relationship(
         "PaymentMethod", back_populates="sales", lazy="joined",
@@ -303,12 +309,14 @@ class Sale(HubBaseModel):
         }
 
         # Apply discount
-        if self.discount_percent > 0:
+        discount_pct = self.discount_percent if self.discount_percent is not None else Decimal("0.00")
+        if discount_pct > 0:
             self.discount_amount = (
-                total_gross * self.discount_percent / Decimal("100")
+                total_gross * discount_pct / Decimal("100")
             ).quantize(Decimal("0.01"))
 
-        self.total = total_gross - self.discount_amount
+        discount_amt = self.discount_amount if self.discount_amount is not None else Decimal("0.00")
+        self.total = total_gross - discount_amt
 
     def calculate_change(self, amount_tendered: Decimal | float | str) -> Decimal:
         """Calculate change due from amount tendered."""
@@ -391,12 +399,16 @@ class SaleItem(HubBaseModel):
         Calculate line totals including per-item tax.
         Supports both tax-included and tax-excluded pricing.
         """
+        # Ensure numeric defaults (SQLAlchemy column defaults only apply on DB flush)
+        discount_pct = self.discount_percent if self.discount_percent is not None else Decimal("0.00")
+        tax_rate = self.tax_rate if self.tax_rate is not None else Decimal("0.00")
+
         # Calculate discount
-        discount_amount = self.unit_price * (self.discount_percent / Decimal("100"))
+        discount_amount = self.unit_price * (discount_pct / Decimal("100"))
         discounted_price = self.unit_price - discount_amount
 
         if tax_included:
-            tax_divisor = Decimal("1") + (self.tax_rate / Decimal("100"))
+            tax_divisor = Decimal("1") + (tax_rate / Decimal("100"))
             net_unit = discounted_price / tax_divisor
             self.net_amount = (net_unit * self.quantity).quantize(Decimal("0.01"))
             self.line_total = (discounted_price * self.quantity).quantize(Decimal("0.01"))
@@ -404,7 +416,7 @@ class SaleItem(HubBaseModel):
         else:
             self.net_amount = (discounted_price * self.quantity).quantize(Decimal("0.01"))
             self.tax_amount = (
-                self.net_amount * (self.tax_rate / Decimal("100"))
+                self.net_amount * (tax_rate / Decimal("100"))
             ).quantize(Decimal("0.01"))
             self.line_total = (self.net_amount + self.tax_amount).quantize(Decimal("0.01"))
 
