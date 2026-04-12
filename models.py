@@ -251,6 +251,11 @@ class Sale(HubBaseModel):
         Uuid, nullable=True,
     )
 
+    # Cash register session (loose FK — cash_register may not be installed)
+    cash_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True, index=True,
+    )
+
     # Relationships
     payment_method_rel: Mapped[PaymentMethod | None] = relationship(
         "PaymentMethod", back_populates="sales", lazy="joined",
