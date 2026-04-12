@@ -18,7 +18,7 @@
                 hx-target="#main-content-area"
                 hx-push-url="true">
                 <td class="table__td font-medium">{{ sale.sale_number }}</td>
-                <td class="table__td text-sm text-muted">{{ sale.created_at|dateformat("d/m/Y H:i") }}</td>
+                <td class="table__td text-sm text-muted">{{ sale.created_at.strftime("%d/%m/%Y %H:%M") if sale.created_at else "" }}</td>
                 <td class="table__td">{{ sale.customer_name|default("-") }}</td>
                 <td class="table__td text-sm">{{ sale.payment_method_name|default("-") }}</td>
                 <td class="table__td text-center">

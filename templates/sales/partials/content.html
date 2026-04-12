@@ -81,7 +81,7 @@
                         <div>
                             <div class="font-medium">{{ sale.sale_number }}</div>
                             <div class="text-xs text-muted">
-                                {{ sale.created_at|dateformat("d/m/Y H:i") }}
+                                {{ sale.created_at.strftime("%d/%m/%Y %H:%M") if sale.created_at else "" }}
                                 {% if sale.customer_name %} - {{ sale.customer_name }}{% endif %}
                             </div>
                         </div>

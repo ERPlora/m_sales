@@ -9,7 +9,7 @@
                 </span>
             </div>
             <p class="text-sm opacity-60">
-                {{ sale.created_at|dateformat("d/m/Y H:i") }}
+                {{ sale.created_at.strftime("%d/%m/%Y %H:%M") if sale.created_at else "" }}
             </p>
         </div>
 
