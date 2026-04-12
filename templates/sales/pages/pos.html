@@ -191,7 +191,7 @@ function posApp() {
         formatCurrency(amount) {
             return new Intl.NumberFormat('{{ LANGUAGE_CODE|default("es") }}', {
                 style: 'currency',
-                currency: '{{ HUB_CONFIG.currency|default("EUR") }}'
+                currency: '{{ HUB_CURRENCY }}'
             }).format(amount);
         },
 

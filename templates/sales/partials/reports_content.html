@@ -39,7 +39,7 @@ function reportsApp() {
         formatCurrency(amount) {
             return new Intl.NumberFormat('{{ LANGUAGE_CODE|default("es") }}', {
                 style: 'currency',
-                currency: '{{ HUB_CONFIG.currency|default("EUR") }}'
+                currency: '{{ HUB_CURRENCY }}'
             }).format(amount);
         },
 
@@ -47,14 +47,14 @@ function reportsApp() {
             if (amount >= 1000) {
                 return new Intl.NumberFormat('{{ LANGUAGE_CODE|default("es") }}', {
                     style: 'currency',
-                    currency: '{{ HUB_CONFIG.currency|default("EUR") }}',
+                    currency: '{{ HUB_CURRENCY }}',
                     maximumFractionDigits: 0,
                     notation: 'compact'
                 }).format(amount);
             }
             return new Intl.NumberFormat('{{ LANGUAGE_CODE|default("es") }}', {
                 style: 'currency',
-                currency: '{{ HUB_CONFIG.currency|default("EUR") }}',
+                currency: '{{ HUB_CURRENCY }}',
                 maximumFractionDigits: 0
             }).format(amount);
         }
