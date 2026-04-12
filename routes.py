@@ -53,7 +53,7 @@ def _q(model, db, hub_id):
 # ============================================================================
 
 @router.get("/")
-@htmx_view(module_id="sales", view_id="dashboard", partial_template="sales/partials/content.html", permissions="sales.view_sale")
+@htmx_view(module_id="sales", view_id="dashboard", full_template="sales/pages/index.html", partial_template="sales/partials/content.html", permissions="sales.view_sale")
 async def dashboard(request: Request, db: DbSession, user: CurrentUser, hub_id: HubId):
     """Sales dashboard with KPIs."""
     today = datetime.now(UTC).date()
@@ -706,7 +706,7 @@ async def reports_stats_ajax(
 # ============================================================================
 
 @router.get("/settings")
-@htmx_view(module_id="sales", view_id="settings", permissions="sales.manage_settings")
+@htmx_view(module_id="sales", view_id="settings", partial_template="sales/partials/settings_content.html", permissions="sales.manage_settings")
 async def settings_view(request: Request, db: DbSession, user: CurrentUser, hub_id: HubId):
     """Sales settings page."""
     settings_q = _q(SalesSettings, db, hub_id)
