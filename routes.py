@@ -8,9 +8,12 @@ Mounted at /m/sales/ by ModuleRuntime.
 from __future__ import annotations
 
 import calendar
+import logging
 import uuid
 from datetime import datetime, timedelta, UTC
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -350,6 +353,25 @@ async def complete_sale(
             sale.calculate_totals(items=sale_items)
             sale.calculate_change(sale_data.amount_tendered)
 
+        # Emit sales.completed after commit — invoice/verifactu/other modules consume this
+        try:
+            from .events import emit_sale_completed
+            await emit_sale_completed(
+                request.app.state.event_bus,
+                sale_id=str(sale.id),
+                hub_id=str(hub_id),
+                total=float(sale.total),
+                subtotal=float(sale.subtotal),
+                tax_amount=float(sale.tax_amount),
+                items_count=len(sale_items),
+                customer_id=str(sale.customer_id) if sale.customer_id else None,
+                customer_name=sale.customer_name or "",
+                sale_number=sale.sale_number or "",
+            )
+        except Exception:
+            logger.exception("Failed to emit sales.completed for sale %s", sale.id)
+            # NO re-raise: sale is already committed to DB; event failure must not break the flow
+
         return JSONResponse({
             "success": True,
             "sale_id": str(sale.id),
@@ -526,6 +548,18 @@ async def void_sale(
                         pass
 
             sale.status = "voided"
+
+        # Emit sales.voided after commit — for future consumers
+        try:
+            from .events import emit_sale_voided
+            await emit_sale_voided(
+                request.app.state.event_bus,
+                sale_id=str(sale.id),
+                hub_id=str(hub_id),
+                sale_number=sale.sale_number or "",
+            )
+        except Exception:
+            logger.exception("Failed to emit sales.voided for sale %s", sale.id)
 
         return JSONResponse({"success": True})
     except Exception as e:
