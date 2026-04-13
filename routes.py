@@ -23,7 +23,7 @@ from sqlalchemy.orm import selectinload
 from app.core.db.query import HubQuery
 from app.core.db.transactions import atomic
 from app.core.dependencies import CurrentUser, DbSession, HubId
-from app.core.htmx import htmx_view
+from app.core.htmx import htmx_view, is_htmx_request, htmx_redirect
 
 from .models import (
     ActiveCart,
@@ -106,9 +106,14 @@ async def dashboard(request: Request, db: DbSession, user: CurrentUser, hub_id: 
 # ============================================================================
 
 @router.get("/pos")
-@htmx_view(module_id="sales", view_id="pos_screen", login_required=True, permissions="sales.add_sale")
+@htmx_view(module_id="sales", view_id="pos_screen", full_template="sales/pages/pos.html", login_required=True, permissions="sales.add_sale")
 async def pos_screen(request: Request, db: DbSession, user: CurrentUser, hub_id: HubId):
     """POS full-screen view."""
+    # POS is a full-screen view that replaces the module shell entirely.
+    # When navigated to via an HTMX swap from the SPA, force a full page
+    # reload instead so pos.html can render with its own base layout.
+    if is_htmx_request(request):
+        return htmx_redirect("/m/sales/pos")
     settings_q = _q(SalesSettings, db, hub_id)
     settings = await settings_q.first()
     if settings is None:
