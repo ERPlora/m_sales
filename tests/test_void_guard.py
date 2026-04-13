@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from modules.sales.services.sale_void_guard import (
+from modules.sales.sale_void_guard import (
     BLOCKING_INVOICE_STATUSES,
     ActiveInvoiceRef,
     SaleCannotBeVoidedError,

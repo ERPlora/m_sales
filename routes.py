@@ -540,7 +540,7 @@ async def void_sale(
         return JSONResponse({"success": False, "error": "Sale is already voided"})
 
     # Fiscal lock: cannot void a sale that has an active invoice linked.
-    from modules.sales.services.sale_void_guard import (
+    from modules.sales.sale_void_guard import (
         SaleCannotBeVoidedError,
         ensure_voidable,
     )

@@ -197,7 +197,7 @@ async def void_sale(
     SaleCannotBeVoidedError
         If an active invoice exists and cascade_invoice is False.
     """
-    from sales.services.sale_void_guard import (
+    from sales.sale_void_guard import (
         SaleCannotBeVoidedError,
         find_active_invoice_for_sale,
     )
@@ -208,12 +208,12 @@ async def void_sale(
 
     if active_invoice is not None:
         if not cascade_invoice:
-            from sales.services.sale_void_guard import SaleCannotBeVoidedError
+            from sales.sale_void_guard import SaleCannotBeVoidedError
             raise SaleCannotBeVoidedError(sale.sale_number, active_invoice)
 
         # Delegate rectification to InvoiceService (already has full R1 logic).
         try:
-            from invoice.services.invoice_service import InvoiceService
+            from invoice.invoice_service import InvoiceService
         except ImportError as exc:
             raise RuntimeError(
                 "invoice module is required for cascade void but is not installed"

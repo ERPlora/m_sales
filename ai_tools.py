@@ -258,7 +258,7 @@ class VoidSale(AssistantTool):
             return {"error": "Cannot void a draft sale — delete it instead"}
 
         # Fiscal lock: cannot void a sale that has an active invoice linked.
-        from modules.sales.services.sale_void_guard import (
+        from modules.sales.sale_void_guard import (
             SaleCannotBeVoidedError,
             ensure_voidable,
         )

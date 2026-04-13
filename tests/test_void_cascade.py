@@ -57,8 +57,8 @@ async def test_void_sale_raises_when_invoice_active_and_no_cascade():
     inv_row = (inv_id, "TICKET", "2026-000001", "issued")
     session = _mock_session(inv_row)
 
-    from sales.services.sale_service import void_sale
-    from sales.services.sale_void_guard import SaleCannotBeVoidedError
+    from sales.sale_service import void_sale
+    from sales.sale_void_guard import SaleCannotBeVoidedError
 
     with pytest.raises(SaleCannotBeVoidedError) as exc_info:
         await void_sale(session, hub_id, sale, reason="test", cascade_invoice=False)
@@ -87,7 +87,7 @@ async def test_void_sale_cascade_creates_rectification():
     fake_rect_invoice = MagicMock()
     fake_rect_invoice.id = rect_id
 
-    # void_sale does `from invoice.services.invoice_service import InvoiceService`
+    # void_sale does `from invoice.invoice_service import InvoiceService`
     # at runtime.  We stub the whole module so no SQLAlchemy models are loaded.
     mock_svc_instance = MagicMock()
     mock_svc_instance.rectify = AsyncMock(return_value=fake_rect_invoice)
@@ -98,10 +98,9 @@ async def test_void_sale_cascade_creates_rectification():
     import sys
     # Pre-populate sys.modules so the lazy import inside void_sale hits our stub
     sys.modules.setdefault("invoice", MagicMock())
-    sys.modules["invoice.services"] = MagicMock()
-    sys.modules["invoice.services.invoice_service"] = mock_invoice_service_module
+    sys.modules["invoice.invoice_service"] = mock_invoice_service_module
 
-    from sales.services.sale_service import void_sale
+    from sales.sale_service import void_sale
 
     result = await void_sale(
         session,
@@ -113,8 +112,7 @@ async def test_void_sale_cascade_creates_rectification():
     )
 
     # Restore so other tests are not affected
-    del sys.modules["invoice.services"]
-    del sys.modules["invoice.services.invoice_service"]
+    del sys.modules["invoice.invoice_service"]
 
     # Return dict
     assert result["sale_number"] == "S-002"
@@ -144,7 +142,7 @@ async def test_void_sale_no_invoice_succeeds_without_cascade():
     sale = _fake_sale(hub_id, "S-003", notes="original note")
     session = _mock_session(None)  # No invoice row
 
-    from sales.services.sale_service import void_sale
+    from sales.sale_service import void_sale
 
     result = await void_sale(
         session, hub_id, sale, reason="test void", cascade_invoice=False, bus=None,

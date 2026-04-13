@@ -13,11 +13,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, UTC, timedelta
 from decimal import Decimal
-from typing import Any
 
 from sqlalchemy import or_
 
-from app.core.db.repository import serialize, serialize_list
+from app.core.db.repository import serialize_list
 from app.core.db.transactions import atomic
 from app.modules.services import ModuleService, action
 
@@ -165,7 +164,7 @@ class SalesQueryService(ModuleService):
         if sale.status == "draft":
             return {"error": "Cannot void a draft sale — delete it instead"}
 
-        from modules.sales.services.sale_void_guard import (
+        from modules.sales.sale_void_guard import (
             SaleCannotBeVoidedError,
             ensure_voidable,
         )

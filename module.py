@@ -11,7 +11,7 @@ ActiveCart, ParkedTicket. No POS interface (that's the pos module).
 # ---------------------------------------------------------------------------
 MODULE_ID = "sales"
 MODULE_NAME = "Sales & POS"
-MODULE_VERSION = "2.4.5"
+MODULE_VERSION = "2.4.6"
 MODULE_ICON = "cart-outline"
 MODULE_DESCRIPTION = "Universal sales engine with multi-tax support, payment methods, and reporting"
 MODULE_AUTHOR = "ERPlora"
