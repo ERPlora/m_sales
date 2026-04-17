@@ -4,6 +4,8 @@ Sales module manifest.
 Universal sales engine: Sale, SaleItem, PaymentMethod, SalesSettings,
 ActiveCart, ParkedTicket. No POS interface (that's the pos module).
 """
+# Classification (sector, business_types, functional_unit) is managed in
+# Cloud DB via the vendor portal (/developer/modules/{id}/edit), not here.
 
 
 # ---------------------------------------------------------------------------
@@ -15,7 +17,6 @@ MODULE_VERSION = "2.4.7"
 MODULE_ICON = "cart-outline"
 MODULE_DESCRIPTION = "Universal sales engine with multi-tax support, payment methods, and reporting"
 MODULE_AUTHOR = "ERPlora"
-MODULE_CATEGORY = "pos"
 
 # ---------------------------------------------------------------------------
 # Capabilities

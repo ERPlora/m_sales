@@ -29,7 +29,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.db.base import HubBaseModel
+from runtime.models.base import HubBaseModel
 
 if TYPE_CHECKING:
     pass
@@ -509,7 +509,7 @@ class ParkedTicket(HubBaseModel):
 
 async def generate_sale_number(session: Any, hub_id: uuid.UUID) -> str:
     """Generate a unique sale number for the hub: YYYYMMDD-0001."""
-    from app.core.db.query import HubQuery
+    from runtime.models.queryset import HubQuery
 
     today = datetime.now(UTC)
     prefix = today.strftime("%Y%m%d")
@@ -535,7 +535,7 @@ async def generate_sale_number(session: Any, hub_id: uuid.UUID) -> str:
 
 async def generate_ticket_number(session: Any, hub_id: uuid.UUID) -> str:
     """Generate a unique parked ticket number for the hub: PARK-YYYYMMDD-0001."""
-    from app.core.db.query import HubQuery
+    from runtime.models.queryset import HubQuery
 
     today = datetime.now(UTC).strftime("%Y%m%d")
     prefix = f"PARK-{today}"

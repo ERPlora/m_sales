@@ -10,7 +10,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.core.hooks.registry import HookRegistry
+    from runtime.signals.hooks import HookRegistry
 
 logger = logging.getLogger(__name__)
 

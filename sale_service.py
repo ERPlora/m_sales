@@ -18,7 +18,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from app.core.db.query import HubQuery
+from runtime.models.queryset import HubQuery
 
 from sales.models import (
     PaymentMethod,

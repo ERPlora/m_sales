@@ -16,9 +16,9 @@ from decimal import Decimal
 
 from sqlalchemy import or_
 
-from app.core.db.repository import serialize_list
-from app.core.db.transactions import atomic
-from app.modules.services import ModuleService, action
+from runtime.repository.base import serialize_list
+from runtime.orm.transactions import atomic
+from runtime.apps.service_facade import ModuleService, action
 
 from sales.models import PaymentMethod, Sale, SaleItem
 

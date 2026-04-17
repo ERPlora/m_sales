@@ -14,8 +14,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func, or_
 from sqlalchemy.orm import selectinload
 
-from app.core.db.query import HubQuery
-from app.core.dependencies import CurrentUser, DbSession, HubId
+from runtime.models.queryset import HubQuery
+from runtime.auth.current_user import CurrentUser, DbSession, HubId
 
 from .models import (
     PaymentMethod,
